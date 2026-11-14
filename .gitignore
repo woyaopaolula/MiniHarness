@@ -1,0 +1,20 @@
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environments and tooling
+.venv/
+.env
+.idea/
+.vscode/
+
+# Packaging output
+build/
+dist/
+*.egg-info/
+
+# Runtime data and logs
+data/*.db
+data/*.db-*
+logs/*.log
