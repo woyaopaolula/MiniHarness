@@ -1,4 +1,7 @@
 import re
+
+from pydantic import BaseModel
+
 from app.tools.base import BaseTool
 
 _TOOL_NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
@@ -35,9 +38,17 @@ class ToolRegistry:
         if not isinstance(description, str) or not description.strip():
             raise ValueError("Tool description must be a non-empty string")
 
+        arguments_model = tool.arguments_model
+        if (
+            not isinstance(arguments_model, type)
+            or not issubclass(arguments_model, BaseModel)
+        ):
+            raise TypeError("tool.arguments_model must be a Pydantic model class")
+
         if name in self._tools:
             raise ValueError(f"Tool already registered: {name}")
 
+        # 入库。
         self._tools[name] = tool
 
     def get(self, name: str) -> BaseTool:

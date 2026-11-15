@@ -1,9 +1,16 @@
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from app.tools.base import BaseTool
 from app.tools.registry import ToolRegistry
+
+
+class EchoArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = ""
 
 
 class EchoTool(BaseTool):
@@ -14,6 +21,10 @@ class EchoTool(BaseTool):
     @property
     def description(self) -> str:
         return "Return the provided message."
+
+    @property
+    def arguments_model(self) -> type[BaseModel]:
+        return EchoArguments
 
     def execute(self, **kwargs: Any) -> str:
         return str(kwargs.get("message", ""))
@@ -29,6 +40,12 @@ class EmptyDescriptionTool(EchoTool):
     @property
     def description(self) -> str:
         return ""
+
+
+class InvalidArgumentsModelTool(EchoTool):
+    @property
+    def arguments_model(self) -> type[BaseModel]:
+        return dict  # type: ignore[return-value]
 
 
 def test_base_tool_cannot_be_instantiated() -> None:
@@ -71,6 +88,13 @@ def test_register_rejects_invalid_metadata(tool: BaseTool) -> None:
 
     with pytest.raises(ValueError):
         registry.register(tool)
+
+
+def test_register_rejects_non_pydantic_arguments_model() -> None:
+    registry = ToolRegistry()
+
+    with pytest.raises(TypeError, match="Pydantic model"):
+        registry.register(InvalidArgumentsModelTool())
 
 
 def test_get_rejects_unknown_tool() -> None:
