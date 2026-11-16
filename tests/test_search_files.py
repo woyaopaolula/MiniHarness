@@ -50,6 +50,27 @@ def test_search_files_respects_case_sensitivity(tmp_path: Path) -> None:
     assert [match["line"] for match in matches] == [1]
 
 
+def test_search_files_treats_regex_characters_as_literal_text(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "example.py").write_text(
+        "values = array[0]\nother = array0\n",
+        encoding="utf-8",
+    )
+
+    matches = SearchFilesTool(workspace).execute(
+        query="[",
+        path=".",
+        file_pattern="*.py",
+        max_results=20,
+        case_sensitive=False,
+    )["matches"]
+
+    assert [match["line"] for match in matches] == [1]
+
+
 def test_search_files_respects_file_pattern(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     workspace.mkdir()

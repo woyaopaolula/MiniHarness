@@ -26,6 +26,17 @@ def test_read_file_supports_nested_relative_path(tmp_path: Path) -> None:
     assert content == "value = 1\n"
 
 
+def test_read_file_marks_truncated_content(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "large.txt").write_text("0123456789", encoding="utf-8")
+
+    content = ReadFileTool(workspace, max_chars=5).execute(path="large.txt")
+
+    assert content.startswith("01234")
+    assert "5 characters truncated" in content
+
+
 def test_read_file_rejects_missing_file(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     workspace.mkdir()
