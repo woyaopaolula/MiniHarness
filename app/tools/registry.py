@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -66,6 +67,18 @@ class ToolRegistry:
             {
                 "name": tool.name,
                 "description": tool.description,
+            }
+            for tool in self._tools.values()
+        ]
+
+    def list_tool_definitions(self) -> list[dict[str, Any]]:
+        """返回可交给模型适配器的工具定义及 JSON Schema。"""
+
+        return [
+            {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.arguments_model.model_json_schema(),
             }
             for tool in self._tools.values()
         ]

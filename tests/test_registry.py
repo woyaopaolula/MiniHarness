@@ -67,6 +67,16 @@ def test_register_get_list_and_execute_tool() -> None:
     assert registry.get("echo").execute(message="hello") == "hello"
 
 
+def test_list_tool_definitions_includes_parameter_schema() -> None:
+    registry = ToolRegistry()
+    registry.register(EchoTool())
+
+    definitions = registry.list_tool_definitions()
+
+    assert definitions[0]["name"] == "echo"
+    assert definitions[0]["parameters"]["properties"]["message"]["type"] == "string"
+
+
 def test_register_rejects_non_tool() -> None:
     registry = ToolRegistry()
 
