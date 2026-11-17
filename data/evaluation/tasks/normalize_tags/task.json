@@ -1,0 +1,8 @@
+{
+  "id": "normalize_tags",
+  "prompt": "Fix normalize_tags in src/tags.py. Split comma-separated tags, trim surrounding whitespace, lowercase each tag, and discard empty tags. Inspect the code, update it, and run the public tests.",
+  "workspace_dir": "workspace",
+  "tests_dir": "evaluation_tests",
+  "max_iterations": 6,
+  "max_tool_calls": 8
+}

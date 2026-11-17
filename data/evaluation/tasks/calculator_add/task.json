@@ -1,0 +1,8 @@
+{
+  "id": "calculator_add",
+  "prompt": "Fix the bug in src/calculator.py so add(left, right) returns their sum. Inspect the code, modify it, and run the public tests.",
+  "workspace_dir": "workspace",
+  "tests_dir": "evaluation_tests",
+  "max_iterations": 6,
+  "max_tool_calls": 8
+}

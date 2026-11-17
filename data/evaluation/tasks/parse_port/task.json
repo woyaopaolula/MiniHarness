@@ -1,0 +1,8 @@
+{
+  "id": "parse_port",
+  "prompt": "Fix parse_port in src/network.py so it converts a string to an integer port and raises ValueError unless the port is between 1 and 65535 inclusive. Inspect the code, update it, and run the public tests.",
+  "workspace_dir": "workspace",
+  "tests_dir": "evaluation_tests",
+  "max_iterations": 6,
+  "max_tool_calls": 8
+}
