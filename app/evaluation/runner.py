@@ -96,6 +96,7 @@ class EvaluationRunner:
         model_factory: Any,
         *,
         trial: int = 1,
+        verification_rounds: int | None = None,
     ) -> EvaluationCaseResult:
         started_at = perf_counter()
         with tempfile.TemporaryDirectory(prefix=f"miniharness-{task.spec.id}-") as temp:
@@ -113,6 +114,11 @@ class EvaluationRunner:
                 ToolExecutor(registry),
                 max_iterations=task.spec.max_iterations,
                 max_tool_calls=task.spec.max_tool_calls,
+                verification_rounds=(
+                    task.spec.verification_rounds
+                    if verification_rounds is None
+                    else verification_rounds
+                ),
             )
 
             agent_status = "exception"
@@ -182,6 +188,11 @@ class EvaluationRunner:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
+            verification_rounds=(
+                task.spec.verification_rounds
+                if verification_rounds is None
+                else verification_rounds
+            ),
             elapsed_seconds=elapsed,
             tests_passed=tests_passed,
             test_exit_code=test_exit_code,

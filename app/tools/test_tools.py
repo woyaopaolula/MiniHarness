@@ -75,7 +75,17 @@ class RunTestsTool(BaseTool):
         test_path: str = kwargs["test_path"]
         target = self._workspace.resolve_path(test_path, allow_root=True)
         if not target.exists():
-            raise FileNotFoundError(f"Test path does not exist: {test_path}")
+            available_tests = sorted(
+                path.relative_to(self._workspace.root).as_posix()
+                for path in self._workspace.root.rglob("test_*.py")
+                if path.is_file()
+            )[:10]
+            hint = (
+                f" Available test files: {', '.join(available_tests)}"
+                if available_tests
+                else " No test_*.py files were found in the workspace."
+            )
+            raise FileNotFoundError(f"Test path does not exist: {test_path}.{hint}")
         if not target.is_file() and not target.is_dir():
             raise ValueError(f"Test path is not a file or directory: {test_path}")
 

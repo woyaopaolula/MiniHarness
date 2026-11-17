@@ -118,6 +118,13 @@ def test_run_tests_rejects_pytest_options_through_executor(tmp_path: Path) -> No
 
 def test_run_tests_rejects_missing_path(tmp_path: Path) -> None:
     workspace = build_workspace(tmp_path)
+    (workspace / "tests/test_visible.py").write_text(
+        "def test_visible():\n    assert True\n",
+        encoding="utf-8",
+    )
 
-    with pytest.raises(FileNotFoundError, match="does not exist"):
+    with pytest.raises(
+        FileNotFoundError,
+        match="Available test files: tests/test_visible.py",
+    ):
         RunTestsTool(workspace).execute(test_path="missing")

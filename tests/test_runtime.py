@@ -261,6 +261,40 @@ def test_runtime_stops_after_model_notices_cancellation() -> None:
     assert result.iterations == 0
 
 
+def test_runtime_requests_verification_after_workspace_write(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    registry = ToolRegistry()
+    registry.register(WriteFileTool(workspace))
+    responses = [
+        tool_call(
+            "write-1",
+            "write_file",
+            {"path": "example.py", "content": "value = 1\n"},
+        ),
+        ModelResponse(content="First candidate answer."),
+        ModelResponse(content="Verified final answer."),
+    ]
+    model = MockModelAdapter(responses)
+    runtime = AgentRuntime(
+        model,
+        registry,
+        ToolExecutor(registry),
+        verification_rounds=1,
+    )
+
+    result = runtime.run("Write the file.")
+
+    assert result.status == "completed"
+    assert result.answer == "Verified final answer."
+    assert result.iterations == 3
+    assert model.requests[2].messages[-1].content.startswith(
+        "Verification checkpoint:"
+    )
+
+
 def test_runtime_rejects_invalid_limits() -> None:
     registry = ToolRegistry()
     executor = ToolExecutor(registry)

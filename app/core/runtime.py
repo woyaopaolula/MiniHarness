@@ -19,8 +19,16 @@ from app.tools.registry import ToolRegistry
 DEFAULT_SYSTEM_PROMPT = (
     "You are a coding agent. Use the available tools to inspect and modify "
     "the workspace. Do not claim that code works unless a tool result "
-    "provides evidence. When the task is complete, return a concise final "
-    "answer."
+    "provides evidence. Use search_files to find tests instead of guessing "
+    "paths. Re-read modified code, check every boundary condition in the "
+    "request, and run relevant tests before returning a concise final answer."
+)
+
+VERIFICATION_PROMPT = (
+    "Verification checkpoint: re-read every modified file and compare it "
+    "against each requirement in the user's task. Check error paths, boundary "
+    "conditions, and relevant tests. Use tools to fix anything that is still "
+    "wrong. Otherwise return a final answer only after verification."
 )
 
 
@@ -45,12 +53,15 @@ class AgentRuntime:
         *,
         max_iterations: int = 8,
         max_tool_calls: int = 20,
+        verification_rounds: int = 0,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     ) -> None:
         if max_iterations < 1:
             raise ValueError("max_iterations must be at least 1")
         if max_tool_calls < 0:
             raise ValueError("max_tool_calls cannot be negative")
+        if verification_rounds < 0:
+            raise ValueError("verification_rounds cannot be negative")
         if not system_prompt.strip():
             raise ValueError("system_prompt must be non-empty")
 
@@ -59,6 +70,7 @@ class AgentRuntime:
         self._executor = executor
         self._max_iterations = max_iterations
         self._max_tool_calls = max_tool_calls
+        self._verification_rounds = verification_rounds
         self._system_prompt = system_prompt
 
     def run(
@@ -99,6 +111,8 @@ class AgentRuntime:
         completion_tokens = 0
         total_tokens = 0
         has_usage = False
+        workspace_mutated = False
+        remaining_verifications = self._verification_rounds
 
         while iterations < self._max_iterations:
             if _is_cancelled(cancellation_token):
@@ -223,6 +237,8 @@ class AgentRuntime:
                         result=tool_result,
                     )
                     records.append(record)
+                    if call.name == "write_file" and tool_result.success:
+                        workspace_mutated = True
                     _emit(
                         event_listener,
                         "tool_call_completed",
@@ -240,6 +256,26 @@ class AgentRuntime:
                 continue
 
             if response.content and response.content.strip():
+                if workspace_mutated and remaining_verifications > 0:
+                    remaining_verifications -= 1
+                    messages.append(
+                        ChatMessage(role="assistant", content=response.content)
+                    )
+                    messages.append(
+                        ChatMessage(role="user", content=VERIFICATION_PROMPT)
+                    )
+                    _emit(
+                        event_listener,
+                        "verification_requested",
+                        iterations,
+                        {
+                            "remaining_verification_rounds": (
+                                remaining_verifications
+                            ),
+                            "candidate_answer": response.content,
+                        },
+                    )
+                    continue
                 return self._result(
                     started_at,
                     task_id=task_id,

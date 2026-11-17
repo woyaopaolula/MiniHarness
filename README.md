@@ -12,7 +12,7 @@ MiniHarness 是一个面向代码任务的轻量级 Coding Agent Runtime。它�
 - 使用 MySQL 8.4 保存任务、执行事件和工具调用。
 - 提供 FastAPI 异步任务接口和协作取消。
 - 使用隐藏 pytest 进行 Coding Agent 自动评测。
-- 当前自动化测试：`97 passed`。
+- 当前自动化测试：`98 passed`。
 
 ## 核心能力
 
@@ -161,18 +161,27 @@ python scripts\run_evaluation.py --mode ollama --repetitions 1
 python scripts\run_evaluation.py --mode ollama --task-id calculator_add --repetitions 1
 ```
 
-当前真实 Qwen 结果：
+改进测试路径反馈和系统提示后的真实 Qwen 结果：
 
 ```text
 qwen2.5-coder:3b
 3 tasks × 1 trial
-task success rate: 2/3 = 66.7%
-mean tool calls: 2.33
-mean elapsed: 146.3 seconds
-total tokens: 7167
+hidden-test task success: 3/3 = 100%
+agent-completed cases: 2/3
+mean tool calls: 4.33
+mean elapsed: 345.8 seconds
+total tokens: 11659
 ```
 
-这是自建小任务集在 CPU 推理条件下的单次结果，不是通用 Qwen Benchmark。
+三组真实对照：
+
+| 策略 | 隐藏测试通过 | Agent 正常结束 | 平均耗时 | Token |
+|---|---:|---:|---:|---:|
+| 原始基线 | 2/3 | 3/3 | 146.3s | 7167 |
+| 强制一次自检 | 1/3 | 2/3 | 441.2s | 18147 |
+| 改进提示与测试错误反馈 | 3/3 | 2/3 | 345.8s | 11659 |
+
+这是自建 3 任务小样本在 CPU 推理、单次运行条件下的结果，不是通用 Qwen Benchmark。强制自检反而降低 3B 成功率的负结果也被保留。
 
 详细报告：
 

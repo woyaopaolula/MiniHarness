@@ -11,6 +11,7 @@ class EvaluationTaskSpec(BaseModel):
     tests_dir: str = "evaluation_tests"
     max_iterations: int = Field(default=8, ge=1)
     max_tool_calls: int = Field(default=20, ge=0)
+    verification_rounds: int = Field(default=0, ge=0, le=3)
 
 
 class ScriptedAction(BaseModel):
@@ -39,6 +40,7 @@ class EvaluationCaseResult(BaseModel):
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
+    verification_rounds: int = 0
     elapsed_seconds: float = Field(ge=0)
     tests_passed: bool = False
     test_exit_code: int | None = None

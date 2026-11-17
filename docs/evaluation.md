@@ -67,7 +67,7 @@ total tokens: 0
 - `data/results/phase7_mock.json`
 - `data/results/phase7_mock.csv`
 
-## 5. 真实 Qwen 实验
+## 5. 真实 Qwen 实验环境
 
 环境：
 
@@ -82,13 +82,15 @@ tasks: 3
 repetitions: 1
 ```
 
-命令：
+基础命令：
 
 ```cmd
 python scripts\run_evaluation.py --mode ollama --repetitions 1
 ```
 
-汇总：
+## 6. 三组对照
+
+第一次原始基线：
 
 ```text
 task success rate: 2/3 = 66.7%
@@ -97,18 +99,47 @@ mean elapsed: 146.3 seconds
 total tokens: 7167
 ```
 
-| 任务 | 成功 | 工具 | 模型轮次 | 耗时 | Token |
-|---|---:|---|---:|---:|---:|
-| `calculator_add` | 是 | read, write | 3 | 76.2s | 2007 |
-| `normalize_tags` | 是 | read, write, run_tests | 4 | 173.2s | 3018 |
-| `parse_port` | 否 | read, write | 3 | 189.5s | 2142 |
+强制一次写后自检：
+
+```text
+task success rate: 1/3 = 33.3%
+mean tool calls: 5.0
+mean elapsed: 441.2 seconds
+total tokens: 18147
+```
+
+自检触发后，3B 在 `calculator_add` 中重复写文件并引入循环导入，在 `normalize_tags` 中未完成修复；只有 `parse_port` 通过。这说明额外自我反思轮次不必然提升小模型可靠性。
+
+改进测试路径错误反馈和系统提示后，重新运行无强制自检基线：
+
+```text
+task success rate: 3/3 = 100%
+agent completed: 2/3
+mean tool calls: 4.33
+mean elapsed: 345.8 seconds
+total tokens: 11659
+```
+
+| 任务 | 隐藏测试 | Agent 完成 | 工具 | 轮次 | 耗时 | Token |
+|---|---:|---:|---|---:|---:|---:|
+| `calculator_add` | 是 | 是 | search, run_tests, read, write, run_tests | 4 | 381.8s | 3674 |
+| `normalize_tags` | 是 | 否 | read, read, write | 4 | 108.3s | 2912 |
+| `parse_port` | 是 | 是 | read, write, run_tests, write, run_tests | 5 | 547.1s | 5073 |
+
+`normalize_tags` 的代码已正确修复并通过对隐藏测试，但模型最终返回空响应。因此：
+
+- 功能任务成功率按隐藏测试统计为 3/3。
+- 严格 Agent 正常结束率为 2/3。
+
+两份指标必须同时报告，不能用 3/3 掩盖一次空响应。
 
 报告：
 
-- `data/results/qwen_phase7.json`
-- `data/results/qwen_phase7.csv`
+- `data/results/qwen_phase7.json`：原始基线
+- `data/results/qwen_phase7_verification.json`：强制自检
+- `data/results/qwen_phase7_baseline_v2.json`：改进反馈后的最新基线
 
-## 6. 失败分析
+## 7. 失败分析
 
 `parse_port` 中，模型没有抛出 `ValueError`，而是打印警告后继续返回端口。Agent 状态为 `completed`，但隐藏测试发现 4 个行为错误：
 
@@ -122,7 +153,7 @@ failure_stage: tests
 
 `normalize_tags` 中，模型一度选择不存在的测试文件，工具返回结构化错误，但代码本身正确，隐藏测试最终通过。
 
-## 7. 有效性边界
+## 8. 有效性边界
 
 - 只有 3 个简单任务。
 - 真实 Qwen 只运行 1 次。
@@ -131,7 +162,7 @@ failure_stage: tests
 - 隐藏测试在 Agent 完成后注入，但测试进程仍与工作区共享运行时。
 - 66.7% 仅适用于上述实验条件。
 
-## 8. 后续实验
+## 9. 后续实验
 
 建议扩展：
 

@@ -17,6 +17,7 @@ AgentEventType = Literal[
     "model_response",
     "tool_call_started",
     "tool_call_completed",
+    "verification_requested",
     "run_finished",
 ]
 

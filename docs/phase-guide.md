@@ -125,6 +125,8 @@
 - 重复实验 JSON/CSV 报告。
 - Ollama Qwen2.5-Coder 3B 真实 Function Calling。
 - Qwen 三任务真实实验。
+- 测试路径错误反馈和可选的写后自检策略。
+- 原始基线、强制自检和错误反馈改进的三组对照。
 
 关键代码：
 

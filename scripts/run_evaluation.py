@@ -35,10 +35,13 @@ def main() -> None:
     )
     parser.add_argument("--task-id", action="append", default=[])
     parser.add_argument("--repetitions", type=int, default=1)
+    parser.add_argument("--verification-rounds", type=int, default=0)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.repetitions < 1:
         raise SystemExit("--repetitions must be at least 1")
+    if not 0 <= args.verification_rounds <= 3:
+        raise SystemExit("--verification-rounds must be between 0 and 3")
 
     tasks = load_evaluation_tasks(args.suite)
     if args.task_id:
@@ -93,7 +96,14 @@ def main() -> None:
                 factory = model_factory_for_task(task)
             else:
                 factory = model_factory
-            cases.append(runner.run_task(task, factory, trial=trial))
+            cases.append(
+                runner.run_task(
+                    task,
+                    factory,
+                    trial=trial,
+                    verification_rounds=args.verification_rounds,
+                )
+            )
 
     report = summarize_report(
         cases,
@@ -126,6 +136,7 @@ def main() -> None:
                 "iterations",
                 "elapsed_seconds",
                 "total_tokens",
+                "verification_rounds",
                 "test_exit_code",
             ],
         )

@@ -118,6 +118,8 @@ python -m pytest <workspace-relative path>
 
 `completed` 只表示 Runtime 正常结束，不代表代码正确。
 
+可选 `verification_rounds` 会在写文件后模型准备结束时追加一次验证提示。由于真实 3B 消融实验中该策略降低了成功率，当前默认值为 0，只作为可配置实验策略。
+
 ## 7. MySQL 状态模型
 
 ```text
