@@ -18,17 +18,21 @@ class BaseTool(ABC):
     @abstractmethod
     def name(self) -> str:
         """返回模型的工具调用中使用的唯一名称。"""
+        ...
 
     @property
     @abstractmethod
     def description(self) -> str:
         """返回供模型理解工具用途的描述。"""
+        ...
 
     @property
     @abstractmethod
     def arguments_model(self) -> type[BaseModel]:
         """返回用于校验模型生成参数值的 Pydantic 模型。"""
+        ...
 
     @abstractmethod
     def execute(self, **kwargs: Any) -> Any:
         """使用已经校验的参数执行工具。"""
+        ...

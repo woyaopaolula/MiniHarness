@@ -23,6 +23,7 @@ class ModelAdapter(ABC):
         tools: Sequence[ToolDefinition],
     ) -> ModelResponse:
         """根据消息历史与可用工具返回下一轮模型响应。"""
+        ...
 
 
 class MockModelAdapter(ModelAdapter):

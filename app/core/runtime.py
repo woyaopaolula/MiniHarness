@@ -35,11 +35,13 @@ VERIFICATION_PROMPT = (
 class AgentEventListener(Protocol):
     def emit(self, event: AgentEvent) -> None:
         """接收 Runtime 发出的实时执行事件。"""
+        ...
 
 
 class CancellationToken(Protocol):
     def is_set(self) -> bool:
         """返回是否已经请求取消。"""
+        ...
 
 
 class AgentRuntime:
