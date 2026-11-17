@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from app.core.model import OpenAICompatibleModelAdapter
+from app.core.model import OllamaModelAdapter, OpenAICompatibleModelAdapter
 from app.models.agent import ChatMessage, ToolCall, ToolDefinition
 
 
@@ -178,3 +178,22 @@ def test_openai_adapter_validates_configuration() -> None:
 
     with pytest.raises(ValueError, match="temperature"):
         OpenAICompatibleModelAdapter("test-model", temperature=3)
+
+
+def test_ollama_adapter_maps_local_model_response() -> None:
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content="Local response.", tool_calls=None),
+                finish_reason="stop",
+            )
+        ],
+        usage=None,
+    )
+    client, completions = build_client(response)
+
+    result = OllamaModelAdapter("qwen-test", client=client).complete([], [])
+
+    assert result.content == "Local response."
+    assert completions.request is not None
+    assert completions.request["model"] == "qwen-test"

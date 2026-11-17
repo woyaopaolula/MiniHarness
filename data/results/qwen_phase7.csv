@@ -1,0 +1,4 @@
+task_id,trial,task_success,agent_completed,agent_status,failure_stage,tool_call_count,tool_names,iterations,elapsed_seconds,total_tokens,test_exit_code
+calculator_add,1,True,True,completed,,2,read_file;write_file,3,76.201082,2007,0
+normalize_tags,1,True,True,completed,,3,read_file;write_file;run_tests,4,173.207601,3018,0
+parse_port,1,False,True,completed,tests,2,read_file;write_file,3,189.51424,2142,1

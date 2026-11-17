@@ -137,6 +137,26 @@ class OpenAICompatibleModelAdapter(ModelAdapter):
         )
 
 
+class OllamaModelAdapter(OpenAICompatibleModelAdapter):
+    """通过 Ollama 的 OpenAI 兼容接口运行本地开源模型。"""
+
+    def __init__(
+        self,
+        model: str = "qwen2.5-coder:3b",
+        *,
+        client: Any | None = None,
+        base_url: str = "http://127.0.0.1:11434/v1",
+        temperature: float = 0.0,
+    ) -> None:
+        super().__init__(
+            model,
+            client=client,
+            api_key="ollama",
+            base_url=base_url,
+            temperature=temperature,
+        )
+
+
 def _to_openai_message(message: ChatMessage) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "role": message.role,

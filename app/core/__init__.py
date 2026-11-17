@@ -1,6 +1,7 @@
 from app.core.model import (
     ModelAdapter,
     MockModelAdapter,
+    OllamaModelAdapter,
     OpenAICompatibleModelAdapter,
 )
 from app.core.runtime import AgentRuntime
@@ -11,6 +12,7 @@ __all__ = [
     "AgentRuntime",
     "ModelAdapter",
     "MockModelAdapter",
+    "OllamaModelAdapter",
     "OpenAICompatibleModelAdapter",
     "TaskManager",
     "TaskService",

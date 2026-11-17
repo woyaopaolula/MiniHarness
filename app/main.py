@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env")
 
 from app.api import tasks_router
-from app.core.model import OpenAICompatibleModelAdapter
+from app.core.model import OllamaModelAdapter, OpenAICompatibleModelAdapter
 from app.core.runtime import AgentRuntime
 from app.core.task_manager import TaskManager
 from app.core.task_service import TaskService
@@ -72,12 +72,6 @@ def _build_default_components() -> tuple[
     TaskRepository,
     TaskService,
 ]:
-    model_name = os.getenv("MINIHARNESS_LLM_MODEL", "").strip()
-    if not model_name:
-        raise RuntimeError(
-            "MINIHARNESS_LLM_MODEL must be configured to start the API"
-        )
-
     workspace = Path(
         os.getenv("MINIHARNESS_WORKSPACE_ROOT", str(PROJECT_ROOT))
     ).resolve()
@@ -92,10 +86,28 @@ def _build_default_components() -> tuple[
     registry.register(SearchFilesTool(workspace))
     registry.register(WriteFileTool(workspace))
     registry.register(RunTestsTool(workspace))
-    model = OpenAICompatibleModelAdapter(
-        model_name,
-        api_key=os.getenv("MINIHARNESS_LLM_API_KEY"),
-        base_url=os.getenv("MINIHARNESS_LLM_BASE_URL"),
-    )
+    provider = os.getenv("MINIHARNESS_MODEL_PROVIDER", "openai").strip().lower()
+    if provider == "ollama":
+        model = OllamaModelAdapter(
+            os.getenv(
+                "MINIHARNESS_OLLAMA_MODEL",
+                "qwen2.5-coder:3b",
+            ),
+            base_url=os.getenv(
+                "MINIHARNESS_OLLAMA_BASE_URL",
+                "http://127.0.0.1:11434/v1",
+            ),
+        )
+    else:
+        model_name = os.getenv("MINIHARNESS_LLM_MODEL", "").strip()
+        if not model_name:
+            raise RuntimeError(
+                "MINIHARNESS_LLM_MODEL must be configured for the openai provider"
+            )
+        model = OpenAICompatibleModelAdapter(
+            model_name,
+            api_key=os.getenv("MINIHARNESS_LLM_API_KEY"),
+            base_url=os.getenv("MINIHARNESS_LLM_BASE_URL"),
+        )
     runtime = AgentRuntime(model, registry, ToolExecutor(registry))
     return database, repository, TaskService(repository, runtime, workspace)

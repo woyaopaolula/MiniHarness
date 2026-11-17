@@ -35,6 +35,7 @@ class EvaluationCaseResult(BaseModel):
     agent_error: str | None = None
     iterations: int = 0
     tool_call_count: int = 0
+    tool_names: list[str] = Field(default_factory=list)
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0

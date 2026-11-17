@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 load_dotenv(PROJECT_ROOT / ".env")
 
-from app.core.model import OpenAICompatibleModelAdapter
+from app.core.model import OllamaModelAdapter, OpenAICompatibleModelAdapter
 from app.evaluation.runner import (
     EvaluationRunner,
     build_scripted_adapter,
@@ -25,7 +25,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run MiniHarness coding evaluations")
     parser.add_argument(
         "--mode",
-        choices=["mock", "openai"],
+        choices=["mock", "openai", "ollama"],
         default="mock",
     )
     parser.add_argument(
@@ -62,6 +62,23 @@ def main() -> None:
             )
 
         model_label = model_name
+    elif args.mode == "ollama":
+        ollama_model = os.getenv(
+            "MINIHARNESS_OLLAMA_MODEL",
+            "qwen2.5-coder:3b",
+        )
+        ollama_base_url = os.getenv(
+            "MINIHARNESS_OLLAMA_BASE_URL",
+            "http://127.0.0.1:11434/v1",
+        )
+
+        def model_factory(workspace: Path):
+            return OllamaModelAdapter(
+                ollama_model,
+                base_url=ollama_base_url,
+            )
+
+        model_label = ollama_model
     else:
         model_label = "scripted-golden"
 
@@ -105,6 +122,7 @@ def main() -> None:
                 "agent_status",
                 "failure_stage",
                 "tool_call_count",
+                "tool_names",
                 "iterations",
                 "elapsed_seconds",
                 "total_tokens",
@@ -113,12 +131,12 @@ def main() -> None:
         )
         writer.writeheader()
         for case in cases:
-            writer.writerow(
-                {
-                    field: getattr(case, field)
-                    for field in writer.fieldnames
-                }
-            )
+            row = {
+                field: getattr(case, field)
+                for field in writer.fieldnames
+            }
+            row["tool_names"] = ";".join(case.tool_names)
+            writer.writerow(row)
 
     print(
         f"{report.passed_count}/{report.task_count} tasks passed "

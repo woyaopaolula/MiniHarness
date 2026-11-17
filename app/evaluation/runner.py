@@ -121,6 +121,7 @@ class EvaluationRunner:
             agent_error = None
             iterations = 0
             tool_call_count = 0
+            tool_names: list[str] = []
             prompt_tokens = 0
             completion_tokens = 0
             total_tokens = 0
@@ -132,6 +133,9 @@ class EvaluationRunner:
                 agent_error = agent_result.error
                 iterations = agent_result.iterations
                 tool_call_count = agent_result.tool_call_count
+                tool_names = [
+                    record.tool_name for record in agent_result.tool_calls
+                ]
                 if agent_result.token_usage is not None:
                     prompt_tokens = agent_result.token_usage.prompt_tokens
                     completion_tokens = agent_result.token_usage.completion_tokens
@@ -174,6 +178,7 @@ class EvaluationRunner:
             agent_error=agent_error,
             iterations=iterations,
             tool_call_count=tool_call_count,
+            tool_names=tool_names,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
