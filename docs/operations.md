@@ -1,5 +1,17 @@
 # 本地运行与故障排查
 
+## CI
+
+GitHub Actions 工作流位于 `.github/workflows/ci.yml`。每次 push 到 `main` 时：
+
+1. 启动 MySQL 8.4 service container。
+2. 安装 `requirements.txt`。
+3. 运行全部 pytest。
+4. 运行 Mock 评测。
+5. 上传 JSON/CSV 评测 artifact。
+
+CI 使用临时环境变量，不读取本地 `.env`。
+
 ## 服务
 
 启动 MySQL：

@@ -1,5 +1,7 @@
 # MiniHarness
 
+[![CI](https://github.com/woyaopaolula/MiniHarness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/woyaopaolula/MiniHarness/actions/workflows/ci.yml)
+
 MiniHarness 是一个面向代码任务的轻量级 Coding Agent Runtime。它把模型提出的工具调用放入受控执行链路中，统一完成参数校验、工作区限制、工具执行、实时事件记录、MySQL 持久化和自动化评测。
 
 项目目标不是重新训练模型，也不是简单封装某个 Agent 框架，而是实现模型与实际工具之间可控、可追踪、可测试的运行时。
@@ -13,6 +15,7 @@ MiniHarness 是一个面向代码任务的轻量级 Coding Agent Runtime。它�
 - 提供 FastAPI 异步任务接口和协作取消。
 - 使用隐藏 pytest 进行 Coding Agent 自动评测。
 - 当前自动化测试：`98 passed`。
+- GitHub Actions 自动运行 MySQL 集成测试和 Mock 评测。
 
 ## 核心能力
 
