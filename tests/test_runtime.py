@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -226,6 +227,38 @@ def test_runtime_rejects_empty_model_response() -> None:
 
     assert result.status == "failed"
     assert result.stop_reason == "empty_model_response"
+
+
+def test_runtime_stops_when_cancellation_is_already_requested() -> None:
+    token = threading.Event()
+    token.set()
+    runtime, model = build_runtime([ModelResponse(content="Unused.")])
+
+    result = runtime.run("Cancel immediately.", cancellation_token=token)
+
+    assert result.status == "cancelled"
+    assert result.stop_reason == "cancellation_requested"
+    assert result.iterations == 0
+    assert model.remaining_responses == 1
+
+
+def test_runtime_stops_after_model_notices_cancellation() -> None:
+    token = threading.Event()
+    runtime, _ = build_runtime([ModelResponse(content="Finished first.")])
+
+    class CancellingListener:
+        def emit(self, event: Any) -> None:
+            if event.event_type == "run_started":
+                token.set()
+
+    result = runtime.run(
+        "Cancel before the model call.",
+        event_listener=CancellingListener(),
+        cancellation_token=token,
+    )
+
+    assert result.status == "cancelled"
+    assert result.iterations == 0
 
 
 def test_runtime_rejects_invalid_limits() -> None:

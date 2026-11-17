@@ -28,6 +28,7 @@ _ALLOWED_TRANSITIONS = {
     (TaskStatus.RUNNING, TaskStatus.COMPLETED),
     (TaskStatus.RUNNING, TaskStatus.FAILED),
     (TaskStatus.RUNNING, TaskStatus.INTERRUPTED),
+    (TaskStatus.RUNNING, TaskStatus.CANCELLED),
 }
 
 
@@ -115,6 +116,7 @@ class TaskRepository:
                 TaskStatus.COMPLETED,
                 TaskStatus.FAILED,
                 TaskStatus.INTERRUPTED,
+                TaskStatus.CANCELLED,
             }:
                 row.finished_at = now
 

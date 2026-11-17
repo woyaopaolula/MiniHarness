@@ -8,6 +8,7 @@ MessageRole = Literal["system", "user", "assistant", "tool"]
 RunStatus = Literal[
     "completed",
     "failed",
+    "cancelled",
     "iteration_limit",
     "tool_call_limit",
 ]

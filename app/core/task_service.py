@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from app.core.runtime import AgentEventListener, AgentRuntime
+from app.core.runtime import AgentEventListener, AgentRuntime, CancellationToken
 from app.models.agent import AgentEvent, AgentRunResult
 from app.storage.models import TaskStatus
 from app.storage.repository import TaskRepository
+from app.storage.schemas import StoredTask
 
 
 class RepositoryEventSink(AgentEventListener):
@@ -36,18 +37,38 @@ class TaskService:
         self._workspace = str(Path(workspace).resolve())
 
     def run(self, prompt: str, *, task_id: str | None = None) -> AgentRunResult:
-        task = self._repository.create_task(
+        task = self.create_task(prompt, task_id=task_id)
+        return self.run_existing(task.id)
+
+    def create_task(
+        self,
+        prompt: str,
+        *,
+        task_id: str | None = None,
+    ) -> StoredTask:
+        return self._repository.create_task(
             prompt,
             self._workspace,
             task_id=task_id,
         )
+
+    def run_existing(
+        self,
+        task_id: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+    ) -> AgentRunResult:
+        task = self._repository.get_task(task_id)
+        if task.status != TaskStatus.PENDING:
+            raise ValueError(f"Task is not pending: {task.status}")
         self._repository.transition_task(task.id, TaskStatus.RUNNING)
 
         try:
             result = self._runtime.run(
-                prompt,
+                task.prompt,
                 task_id=task.id,
                 event_listener=RepositoryEventSink(self._repository, task.id),
+                cancellation_token=cancellation_token,
             )
         except Exception as exc:
             self._repository.transition_task(
@@ -72,7 +93,11 @@ class TaskService:
             final_status = (
                 TaskStatus.COMPLETED
                 if result.status == "completed"
-                else TaskStatus.FAILED
+                else (
+                    TaskStatus.CANCELLED
+                    if result.status == "cancelled"
+                    else TaskStatus.FAILED
+                )
             )
             usage = result.token_usage
             self._repository.transition_task(

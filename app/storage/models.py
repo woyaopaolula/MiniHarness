@@ -26,6 +26,7 @@ class TaskStatus(StrEnum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     INTERRUPTED = "INTERRUPTED"
+    CANCELLED = "CANCELLED"
 
 
 class Base(DeclarativeBase):

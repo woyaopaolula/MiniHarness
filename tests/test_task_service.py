@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -124,3 +125,24 @@ def test_task_service_persists_failed_run(
     assert task.status == TaskStatus.FAILED
     assert task.stop_reason == "empty_model_response"
     assert task.error == "Model returned neither content nor tool calls"
+
+
+def test_task_service_persists_cancelled_run(
+    empty_mysql_database: Database,
+    tmp_path: Path,
+) -> None:
+    service, repository, _ = build_service(
+        empty_mysql_database,
+        tmp_path,
+        [ModelResponse(content="Unused.")],
+    )
+    task = service.create_task("Cancel this.", task_id="task-service-cancelled")
+    cancellation = threading.Event()
+    cancellation.set()
+
+    result = service.run_existing(task.id, cancellation_token=cancellation)
+    stored = repository.get_task(task.id)
+
+    assert result.status == "cancelled"
+    assert stored.status == TaskStatus.CANCELLED
+    assert stored.stop_reason == "cancellation_requested"
