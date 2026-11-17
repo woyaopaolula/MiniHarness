@@ -11,6 +11,13 @@ RunStatus = Literal[
     "iteration_limit",
     "tool_call_limit",
 ]
+AgentEventType = Literal[
+    "run_started",
+    "model_response",
+    "tool_call_started",
+    "tool_call_completed",
+    "run_finished",
+]
 
 
 class ToolDefinition(BaseModel):
@@ -73,9 +80,18 @@ class ToolCallRecord(BaseModel):
     result: ToolExecutionResult
 
 
+class AgentEvent(BaseModel):
+    """Agent 运行时实时发出、供持久化和观测消费的事件。"""
+
+    event_type: AgentEventType
+    iteration: int | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
 class AgentRunResult(BaseModel):
     """Agent 单次运行的最终状态和可观测数据。"""
 
+    task_id: str | None = None
     status: RunStatus
     answer: str | None = None
     stop_reason: str

@@ -1,8 +1,11 @@
 import json
 from time import perf_counter
+from typing import Any, Protocol
 
 from app.core.model import ModelAdapter
 from app.models.agent import (
+    AgentEvent,
+    AgentEventType,
     AgentRunResult,
     ChatMessage,
     RunStatus,
@@ -19,6 +22,11 @@ DEFAULT_SYSTEM_PROMPT = (
     "provides evidence. When the task is complete, return a concise final "
     "answer."
 )
+
+
+class AgentEventListener(Protocol):
+    def emit(self, event: AgentEvent) -> None:
+        """接收 Runtime 发出的实时执行事件。"""
 
 
 class AgentRuntime:
@@ -48,7 +56,13 @@ class AgentRuntime:
         self._max_tool_calls = max_tool_calls
         self._system_prompt = system_prompt
 
-    def run(self, task: str) -> AgentRunResult:
+    def run(
+        self,
+        task: str,
+        *,
+        task_id: str | None = None,
+        event_listener: AgentEventListener | None = None,
+    ) -> AgentRunResult:
         if not isinstance(task, str) or not task.strip():
             raise ValueError("task must be a non-empty string")
 
@@ -61,6 +75,18 @@ class AgentRuntime:
             ToolDefinition.model_validate(definition)
             for definition in self._registry.list_tool_definitions()
         ]
+        _emit(
+            event_listener,
+            "run_started",
+            None,
+            {
+                "task": task,
+                "task_id": task_id,
+                "available_tools": [tool.name for tool in tools],
+                "max_iterations": self._max_iterations,
+                "max_tool_calls": self._max_tool_calls,
+            },
+        )
         records: list[ToolCallRecord] = []
         iterations = 0
         prompt_tokens = 0
@@ -75,6 +101,7 @@ class AgentRuntime:
             except Exception as exc:
                 return self._result(
                     started_at,
+                    task_id=task_id,
                     status="failed",
                     stop_reason="model_error",
                     error=str(exc) or exc.__class__.__name__,
@@ -86,8 +113,15 @@ class AgentRuntime:
                         completion_tokens,
                         total_tokens,
                     ),
+                    event_listener=event_listener,
                 )
 
+            _emit(
+                event_listener,
+                "model_response",
+                iterations,
+                response.model_dump(mode="json"),
+            )
             if response.usage is not None:
                 has_usage = True
                 prompt_tokens += response.usage.prompt_tokens
@@ -106,6 +140,7 @@ class AgentRuntime:
                     if len(records) >= self._max_tool_calls:
                         return self._result(
                             started_at,
+                            task_id=task_id,
                             status="tool_call_limit",
                             stop_reason="tool_call_limit",
                             error=(
@@ -120,20 +155,36 @@ class AgentRuntime:
                                 completion_tokens,
                                 total_tokens,
                             ),
+                            event_listener=event_listener,
                         )
 
+                    _emit(
+                        event_listener,
+                        "tool_call_started",
+                        iterations,
+                        {
+                            "call_id": call.id,
+                            "tool_name": call.name,
+                            "arguments": call.arguments,
+                        },
+                    )
                     tool_result = self._executor.execute(
                         call.name,
                         call.arguments,
                     )
-                    records.append(
-                        ToolCallRecord(
-                            iteration=iterations,
-                            call_id=call.id,
-                            tool_name=call.name,
-                            arguments=call.arguments,
-                            result=tool_result,
-                        )
+                    record = ToolCallRecord(
+                        iteration=iterations,
+                        call_id=call.id,
+                        tool_name=call.name,
+                        arguments=call.arguments,
+                        result=tool_result,
+                    )
+                    records.append(record)
+                    _emit(
+                        event_listener,
+                        "tool_call_completed",
+                        iterations,
+                        {"record": record.model_dump(mode="json")},
                     )
                     messages.append(
                         ChatMessage(
@@ -148,6 +199,7 @@ class AgentRuntime:
             if response.content and response.content.strip():
                 return self._result(
                     started_at,
+                    task_id=task_id,
                     status="completed",
                     stop_reason="final_answer",
                     answer=response.content,
@@ -159,10 +211,12 @@ class AgentRuntime:
                         completion_tokens,
                         total_tokens,
                     ),
+                    event_listener=event_listener,
                 )
 
             return self._result(
                 started_at,
+                task_id=task_id,
                 status="failed",
                 stop_reason="empty_model_response",
                 error="Model returned neither content nor tool calls",
@@ -174,10 +228,12 @@ class AgentRuntime:
                     completion_tokens,
                     total_tokens,
                 ),
+                event_listener=event_listener,
             )
 
         return self._result(
             started_at,
+            task_id=task_id,
             status="iteration_limit",
             stop_reason="iteration_limit",
             error=f"Maximum iterations reached: {self._max_iterations}",
@@ -189,12 +245,14 @@ class AgentRuntime:
                 completion_tokens,
                 total_tokens,
             ),
+            event_listener=event_listener,
         )
 
-    @staticmethod
     def _result(
+        self,
         started_at: float,
         *,
+        task_id: str | None,
         status: RunStatus,
         stop_reason: str,
         iterations: int,
@@ -202,8 +260,10 @@ class AgentRuntime:
         answer: str | None = None,
         error: str | None = None,
         token_usage: TokenUsage | None = None,
+        event_listener: AgentEventListener | None,
     ) -> AgentRunResult:
-        return AgentRunResult(
+        result = AgentRunResult(
+            task_id=task_id,
             status=status,
             answer=answer,
             stop_reason=stop_reason,
@@ -214,6 +274,13 @@ class AgentRuntime:
             token_usage=token_usage,
             elapsed_seconds=round(perf_counter() - started_at, 6),
         )
+        _emit(
+            event_listener,
+            "run_finished",
+            iterations,
+            result.model_dump(mode="json", exclude={"tool_calls"}),
+        )
+        return result
 
 
 def _serialize_tool_result(result: ToolExecutionResult) -> str:
@@ -236,4 +303,21 @@ def _token_usage(
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
+    )
+
+
+def _emit(
+    listener: AgentEventListener | None,
+    event_type: AgentEventType,
+    iteration: int | None,
+    payload: dict[str, Any],
+) -> None:
+    if listener is None:
+        return
+    listener.emit(
+        AgentEvent(
+            event_type=event_type,
+            iteration=iteration,
+            payload=payload,
+        )
     )

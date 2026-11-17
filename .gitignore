@@ -17,4 +17,5 @@ dist/
 # Runtime data and logs
 data/*.db
 data/*.db-*
+data/mysql/
 logs/*.log

@@ -4,10 +4,12 @@ from app.core.model import (
     OpenAICompatibleModelAdapter,
 )
 from app.core.runtime import AgentRuntime
+from app.core.task_service import TaskService
 
 __all__ = [
     "AgentRuntime",
     "ModelAdapter",
     "MockModelAdapter",
     "OpenAICompatibleModelAdapter",
+    "TaskService",
 ]

@@ -1,4 +1,5 @@
 from app.models.agent import (
+    AgentEvent,
     AgentRunResult,
     ChatMessage,
     ModelRequest,
@@ -10,6 +11,7 @@ from app.models.agent import (
 )
 
 __all__ = [
+    "AgentEvent",
     "AgentRunResult",
     "ChatMessage",
     "ModelRequest",
