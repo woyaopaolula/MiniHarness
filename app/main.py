@@ -4,6 +4,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
 
 from app.api import tasks_router
 from app.core.model import OpenAICompatibleModelAdapter
@@ -74,9 +78,8 @@ def _build_default_components() -> tuple[
             "MINIHARNESS_LLM_MODEL must be configured to start the API"
         )
 
-    project_root = Path(__file__).resolve().parents[1]
     workspace = Path(
-        os.getenv("MINIHARNESS_WORKSPACE_ROOT", str(project_root))
+        os.getenv("MINIHARNESS_WORKSPACE_ROOT", str(PROJECT_ROOT))
     ).resolve()
     if not workspace.is_dir():
         raise RuntimeError(f"Workspace root does not exist: {workspace}")
